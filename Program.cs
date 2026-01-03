@@ -1,11 +1,17 @@
 ﻿
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 
 class Program
 {
     static void Main()
     {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            Console.WriteLine("このプログラムはLinux用です。");
+            return;
+        }
         Console.WriteLine("Starting cleanup...");
         CleanBashHistory();
         DeleteLogFiles();
@@ -36,14 +42,15 @@ class Program
             {
                 // .bash_history が見つからない場合、以下の行でファイルを作成
                 string[] defaultLines = {
-                    "sudo dnf upgrade",
                     "sdk update",
                     "sdk upgrade",
                     "rustup update",
                     "rustup upgrade",
+                    "hisclear",
+                    "flatpak update",
+                    "sudo dnf upgrade",
                     "sudo dnf autoremove",
                     "sudo dnf update",
-                    "flatpak update",
                     "###"
                 };
                 File.WriteAllLines(filePath, defaultLines);
