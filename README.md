@@ -1,2 +1,2 @@
 # hisclear
-built with Grok code 1, bash command line history clear re-init for linux.
+built with Grok code Fast 1, bash command line history clear re-init for linux.
