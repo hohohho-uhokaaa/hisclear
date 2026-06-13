@@ -1,16 +1,7 @@
 ﻿// <author>Grok Code Fast 1</author>
-// Linux 環境で .bash_history をクリーンアップし、server-*.log ファイルを削除するプログラム。Windows では実行されない。
-// messages.ini からメッセージを読み込み、エラーハンドリングも実装。
-// messages.ini の例:
-// [Messages]
-// ProgramNotForLinux=このプログラムは Linux 環境でのみ実行できます。
-// StartingCleanup=クリーンアップを開始します。
-// BashHistoryCleaned=.bash_history がクリーンアップされました。
-// BashHistoryNotFound=.bash_history ファイルが見つかりませんでした。
-// BashHistoryCreated=.bash_history ファイルが作成されました。
-// BashHistoryError=.bash_history のクリーンアップ中にエラーが発生しました: {0}
-// LogFileDeleted={0} が削除されました。
-// LogFileDeleteFailed={0} の削除に失敗しました: {1}
+// Linux 環境で .bash_history をクリーンアップし、server-*.log ファイルを削除するプログラム。
+// Windows では実行されません。
+// messages.ini からメッセージを読み込み、default_history.txt からデフォルト履歴を読み込みます。
 
 
 using System;
@@ -21,153 +12,203 @@ using System.Runtime.InteropServices;
 /// <author>Grok Code Fast 1</author>
 static class Program
 {
+    /// <summary>
+    /// messages.ini から読み込んだメッセージを保持する辞書
+    /// </summary>
     private static readonly Dictionary<string, string> messages = new Dictionary<string, string>();
-    private const string IniNotFoundMessage = "messages.ini が見つかりません。";
 
     /// <summary>
-    /// プログラムのエントリーポイント。OS をチェックし、Linux の場合にクリーンアップ処理を実行。
+    /// .bash_history 内で履歴の区切りとして使用するデリミタ文字列
+    /// この行以降のコマンドはクリーンアップ時に削除されます
+    /// </summary>
+    private const string BashHistoryDelimiter = "###";
+
+    /// <summary>
+    /// デフォルトの bash_history コマンドが記述されたファイル名
+    /// .bash_history が存在しない場合にこのファイルからコマンドを読み込みます
+    /// </summary>
+    private const string DefaultHistoryFile = "default_history.txt";
+
+    /// <summary>
+    /// プログラムのエントリーポイント
+    /// OS をチェックし、Linux の場合にクリーンアップ処理を実行します
     /// </summary>
     static void Main()
     {
-        // messages.ini を読み込み
+        // メッセージリソースファイルを読み込み
         LoadMessages();
 
-        // Windows の場合、プログラムを終了
+        // Windows 環境の場合、処理を終了
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             Console.WriteLine(GetMessage("ProgramNotForLinux"));
             return;
         }
+
+        // クリーンアップ処理を開始
         Console.WriteLine(GetMessage("StartingCleanup"));
         CleanBashHistory();
         DeleteLogFiles();
     }
 
     /// <summary>
-    /// .bash_history ファイルをクリーンアップ。 "###" の行以降を削除し、ファイルが存在しない場合はデフォルトの履歴を作成。
+    /// .bash_history ファイルをクリーンアップします
+    /// "###" の行以降を削除し、ファイルが存在しない場合はデフォルトの履歴を作成します
     /// </summary>
     static void CleanBashHistory()
     {
-        // .bash_history のパスを取得
+        // ユーザーホームディレクトリの .bash_history パスを取得
         string filePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".bash_history");
 
         try
         {
             if (File.Exists(filePath))
             {
-                // ファイルを読み込み
+                // 既存の履歴ファイルを読み込み
                 string[] lines = File.ReadAllLines(filePath);
-                // "###" の行を探す
-                int index = Array.FindIndex(lines, line => line.Contains("###"));
+                
+                // デリミタ行（"###"）のインデックスを検索
+                int index = Array.FindIndex(lines, line => line.Contains(BashHistoryDelimiter));
+                
                 if (index >= 0)
                 {
-                    // "###" の行までを保持
+                    // デリミタ行までを保持し、それ以降を削除
                     string[] keptLines = lines[..(index + 1)];
                     File.WriteAllLines(filePath, keptLines);
                     Console.WriteLine(GetMessage("BashHistoryCleaned"));
                 }
                 else
                 {
+                    // デリミタが見つからない場合、変更なし
                     Console.WriteLine(GetMessage("BashHistoryNotFound"));
                 }
             }
             else
             {
-                // .bash_history が見つからない場合、デフォルトの履歴を作成
-                string[] defaultLines = {
-                "yes | curl -fsSL https://ollama.com/install.sh | sh; sudo systemctl restart ollama",
-                "sudo systemctl restart ollama",
-                "ollama stop gemma4:12b",
-                "ollama serve gemma4:12b",
-                "ollama stop qwen2.5 - coder:7b",
-                "ollama serve qwen2.5 - coder:7b",
-                "sudo e4defrag / dev / sdb1",
-                "sdk update",
-                "sdk upgrade",
-                "sdk upgrade java",
-                "sdk current list",
-                "sdk flush candidatess",
-                "rustup update",
-                "rustup upgrade",
-                "rustup toolchain",
-                "flatpak update -y",
-                "flatpak uninstall --unused",
-                "sudo dnf upgrade",
-                "sudo dnf autoremove",
-                "sudo dnf update",
-                "hermes update",
-                "hc",
-                "hc; sudo dnf update - y; sudo dnf autoremove - y; sudo dnf upgrade - y; flatpak update -y; flatoak uninstall --unused; rustup upgrade; rustup update; rustup self update; yes | sdk upgrade; sdk current; sdk flush candidatess; hc",
-                "###"
-            };
-                File.WriteAllLines(filePath, defaultLines);
-                Console.WriteLine(GetMessage("BashHistoryCreated"));
+                // .bash_history が存在しない場合、デフォルト履歴から新規作成
+                string[] defaultLines = LoadDefaultHistory();
+                if (defaultLines.Length > 0)
+                {
+                    File.WriteAllLines(filePath, defaultLines);
+                    Console.WriteLine(GetMessage("BashHistoryCreated"));
+                }
+                else
+                {
+                    // デフォルト履歴ファイルの読み込みに失敗
+                    Console.WriteLine(GetMessage("DefaultHistoryLoadFailed"));
+                }
             }
         }
-        catch (Exception ex)
+        catch (IOException ex)
         {
-            Console.WriteLine($"{GetMessage("BashHistoryError").Replace("{0}", ex.Message)}");
+            // ファイル入出力エラーを処理
+            Console.WriteLine(string.Format(GetMessage("BashHistoryError"), ex.Message));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            // アクセス権限エラーを処理
+            Console.WriteLine(string.Format(GetMessage("BashHistoryError"), ex.Message));
         }
     }
 
     /// <summary>
-    /// ホームディレクトリ内の server-*.log ファイルを削除。
+    /// ホームディレクトリ内の server-*.log ファイルを削除します
     /// </summary>
     static void DeleteLogFiles()
     {
-        // ホームディレクトリのパスを取得
+        // ユーザーホームディレクトリのパスを取得
         string homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        // server-*.log のファイルを検索
+        
+        // server-*.log パターンに一致するファイルを検索
         string[] logFiles = Directory.GetFiles(homeDir, "server-*.log");
+        
         foreach (string file in logFiles)
         {
             try
             {
-                // ファイルを削除
+                // ログファイルを削除
                 File.Delete(file);
-                Console.WriteLine($"{GetMessage("LogFileDeleted").Replace("{0}", Path.GetFileName(file))}");
+                Console.WriteLine(string.Format(GetMessage("LogFileDeleted"), Path.GetFileName(file)));
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                Console.WriteLine($"{GetMessage("LogFileDeleteFailed").Replace("{0}", Path.GetFileName(file)).Replace("{1}", ex.Message)}");
+                // ファイル入出力エラーを処理
+                Console.WriteLine(string.Format(GetMessage("LogFileDeleteFailed"), Path.GetFileName(file), ex.Message));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                // アクセス権限エラーを処理
+                Console.WriteLine(string.Format(GetMessage("LogFileDeleteFailed"), Path.GetFileName(file), ex.Message));
             }
         }
     }
 
     /// <summary>
-    /// messages.ini からメッセージを読み込み。
+    /// default_history.txt からデフォルト履歴を読み込みます
+    /// </summary>
+    /// <returns>デフォルト履歴のコマンド配列。ファイルが存在しない場合は空の配列</returns>
+    static string[] LoadDefaultHistory()
+    {
+        // アプリケーションベースディレクトリの default_history.txt パスを取得
+        string historyPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, DefaultHistoryFile);
+        
+        if (!File.Exists(historyPath))
+        {
+            // ファイルが存在しない場合、空の配列を返す
+            return Array.Empty<string>();
+        }
+        
+        // ファイルから全行を読み込み
+        return File.ReadAllLines(historyPath);
+    }
+
+    /// <summary>
+    /// messages.ini からメッセージを読み込みます
+    /// INI ファイルの [Messages] セクションからキーと値のペアを解析して辞書に格納します
     /// </summary>
     static void LoadMessages()
     {
+        // アプリケーションベースディレクトリの messages.ini パスを取得
         string iniPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "messages.ini");
+        
         if (!File.Exists(iniPath))
         {
-            Console.WriteLine(IniNotFoundMessage);
+            // INI ファイルが存在しない場合、エラーメッセージを表示
+            Console.WriteLine(GetMessage("IniNotFound"));
             return;
         }
 
+        // INI ファイルから全行を読み込み
         string[] lines = File.ReadAllLines(iniPath);
         bool inMessagesSection = false;
+        
         foreach (string line in lines)
         {
             string trimmed = line.Trim();
+            
+            // 空行やコメント行（; または # で始まる）をスキップ
             if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith(";") || trimmed.StartsWith("#"))
             {
-                continue; // 空行やコメントをスキップ
+                continue;
             }
+            
+            // [Messages] セクションの開始を検出
             if (trimmed.StartsWith("[Messages]"))
             {
                 inMessagesSection = true;
             }
+            // 他のセクションの開始を検出（Messages セクションを終了）
             else if (trimmed.StartsWith("[") && trimmed.EndsWith("]"))
             {
                 inMessagesSection = false;
             }
+            // Messages セクション内のキー=値ペアを解析
             else if (inMessagesSection && trimmed.Contains("="))
             {
                 string[] parts = trimmed.Split('=', 2);
                 if (parts.Length == 2)
                 {
+                    // キーと値を辞書に格納（前後の空白をトリム）
                     messages[parts[0].Trim()] = parts[1].Trim();
                 }
             }
@@ -175,12 +216,14 @@ static class Program
     }
 
     /// <summary>
-    /// 指定されたキーに対応するメッセージを取得。
+    /// 指定されたキーに対応するメッセージを取得します
     /// </summary>
     /// <param name="key">メッセージのキー</param>
-    /// <returns>メッセージ文字列</returns>
+    /// <returns>メッセージ文字列。キーが存在しない場合はエラーメッセージ</returns>
     static string GetMessage(string key)
     {
+        // 辞書にキーが存在する場合は対応するメッセージを返す
+        // 存在しない場合はエラーメッセージを返す
         return messages.ContainsKey(key) ? messages[key] : $"Message not found: {key}";
     }
 }
