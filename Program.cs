@@ -1,4 +1,18 @@
-﻿
+﻿// <author>Grok Code Fast 1</author>
+// Linux 環境で .bash_history をクリーンアップし、server-*.log ファイルを削除するプログラム。Windows では実行されない。
+// messages.ini からメッセージを読み込み、エラーハンドリングも実装。
+// messages.ini の例:
+// [Messages]
+// ProgramNotForLinux=このプログラムは Linux 環境でのみ実行できます。
+// StartingCleanup=クリーンアップを開始します。
+// BashHistoryCleaned=.bash_history がクリーンアップされました。
+// BashHistoryNotFound=.bash_history ファイルが見つかりませんでした。
+// BashHistoryCreated=.bash_history ファイルが作成されました。
+// BashHistoryError=.bash_history のクリーンアップ中にエラーが発生しました: {0}
+// LogFileDeleted={0} が削除されました。
+// LogFileDeleteFailed={0} の削除に失敗しました: {1}
+
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -61,15 +75,29 @@ static class Program
             {
                 // .bash_history が見つからない場合、デフォルトの履歴を作成
                 string[] defaultLines = {
+                "yes | curl -fsSL https://ollama.com/install.sh | sh; sudo systemctl restart ollama",
+                "sudo systemctl restart ollama",
+                "ollama stop gemma4:12b",
+                "ollama serve gemma4:12b",
+                "ollama stop qwen2.5 - coder:7b",
+                "ollama serve qwen2.5 - coder:7b",
+                "sudo e4defrag / dev / sdb1",
                 "sdk update",
                 "sdk upgrade",
+                "sdk upgrade java",
+                "sdk current list",
+                "sdk flash candidatess",
                 "rustup update",
                 "rustup upgrade",
-                "hisclear",
-                "flatpak update",
+                "rustup toolchain",
+                "flatpak update - y",
+                "flatpak uninstall --unused",
                 "sudo dnf upgrade",
                 "sudo dnf autoremove",
                 "sudo dnf update",
+                "hermes update",
+                "hc",
+                "hc; sudo dnf update - y; sudo dnf autoremove - y; sudo dnf upgrade - y; flatpak update -y; flatoak uninstall --unused; rustup upgrade; rustup update; rustup self update; yes | sdk upgrade; sdk current; sdk flash candidatess; hc",
                 "###"
             };
                 File.WriteAllLines(filePath, defaultLines);
