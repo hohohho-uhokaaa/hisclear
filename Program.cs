@@ -90,7 +90,7 @@ static class Program
                 "rustup update",
                 "rustup upgrade",
                 "rustup toolchain",
-                "flatpak update - y",
+                "flatpak update -y",
                 "flatpak uninstall --unused",
                 "sudo dnf upgrade",
                 "sudo dnf autoremove",
