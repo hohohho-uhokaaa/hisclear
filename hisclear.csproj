@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <None Include="messages.ini" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="default_history.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

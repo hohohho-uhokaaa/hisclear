@@ -1,15 +1,16 @@
-﻿// <author>Grok Code Fast 1</author>
+﻿// <author>Grok code fast + windsurf devin</author>
 // Linux 環境で .bash_history をクリーンアップし、server-*.log ファイルを削除するプログラム。
 // Windows では実行されません。
 // messages.ini からメッセージを読み込み、default_history.txt からデフォルト履歴を読み込みます。
-
+// 自分用のクリーンアップツール
+// .bash_history の###以降のコマンドを削除して upper cursor key でいつもの順番でいつもの作業を実行
+// windsurf でちょい仕上げ
 
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 
-/// <author>Grok Code Fast 1</author>
 static class Program
 {
     /// <summary>
