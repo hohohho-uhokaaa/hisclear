@@ -86,7 +86,7 @@ static class Program
                 "sdk upgrade",
                 "sdk upgrade java",
                 "sdk current list",
-                "sdk flash candidatess",
+                "sdk flush candidatess",
                 "rustup update",
                 "rustup upgrade",
                 "rustup toolchain",
@@ -97,7 +97,7 @@ static class Program
                 "sudo dnf update",
                 "hermes update",
                 "hc",
-                "hc; sudo dnf update - y; sudo dnf autoremove - y; sudo dnf upgrade - y; flatpak update -y; flatoak uninstall --unused; rustup upgrade; rustup update; rustup self update; yes | sdk upgrade; sdk current; sdk flash candidatess; hc",
+                "hc; sudo dnf update - y; sudo dnf autoremove - y; sudo dnf upgrade - y; flatpak update -y; flatoak uninstall --unused; rustup upgrade; rustup update; rustup self update; yes | sdk upgrade; sdk current; sdk flush candidatess; hc",
                 "###"
             };
                 File.WriteAllLines(filePath, defaultLines);
