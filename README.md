@@ -1,6 +1,7 @@
 # hisclear
 
 Linux 環境で .bash_history をクリーンアップし、server-*.log ファイルを削除するプログラム。
+2026/9/28 Program.cs, default_history.txt, hisclear.csproj ちょい修正
 
 ## 概要
 
