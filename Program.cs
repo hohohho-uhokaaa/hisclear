@@ -39,13 +39,12 @@ static class Program
         // メッセージリソースファイルを読み込み
         LoadMessages();
 
-        // Windows 環境の場合、処理を終了
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        // OS が Linux でない場合は終了
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
             Console.WriteLine(GetMessage("ProgramNotForLinux"));
             return;
         }
-
         // クリーンアップ処理を開始
         Console.WriteLine(GetMessage("StartingCleanup"));
         CleanBashHistory();
@@ -67,10 +66,10 @@ static class Program
             {
                 // 既存の履歴ファイルを読み込み
                 string[] lines = File.ReadAllLines(filePath);
-                
+
                 // デリミタ行（"###"）のインデックスを検索
                 int index = Array.FindIndex(lines, line => line.Contains(BashHistoryDelimiter));
-                
+
                 if (index >= 0)
                 {
                     // デリミタ行までを保持し、それ以降を削除
@@ -119,10 +118,10 @@ static class Program
     {
         // ユーザーホームディレクトリのパスを取得
         string homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        
+
         // server-*.log パターンに一致するファイルを検索
         string[] logFiles = Directory.GetFiles(homeDir, "server-*.log");
-        
+
         foreach (string file in logFiles)
         {
             try
@@ -152,13 +151,13 @@ static class Program
     {
         // アプリケーションベースディレクトリの default_history.txt パスを取得
         string historyPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, DefaultHistoryFile);
-        
+
         if (!File.Exists(historyPath))
         {
             // ファイルが存在しない場合、空の配列を返す
             return Array.Empty<string>();
         }
-        
+
         // ファイルから全行を読み込み
         return File.ReadAllLines(historyPath);
     }
@@ -171,7 +170,7 @@ static class Program
     {
         // アプリケーションベースディレクトリの messages.ini パスを取得
         string iniPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "messages.ini");
-        
+
         if (!File.Exists(iniPath))
         {
             // INI ファイルが存在しない場合、エラーメッセージを表示
@@ -182,27 +181,27 @@ static class Program
         // INI ファイルから全行を読み込み
         string[] lines = File.ReadAllLines(iniPath);
         bool inMessagesSection = false;
-        
+
         foreach (string line in lines)
         {
             string trimmed = line.Trim();
-            
+
             // 空行やコメント行（; または # で始まる）をスキップ
             if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith(";") || trimmed.StartsWith("#"))
             {
                 continue;
             }
-            
+
             // [Messages] セクションの開始を検出
-            if (trimmed.StartsWith("[Messages]"))
+            if (string.Equals(trimmed, "[Messages]", StringComparison.OrdinalIgnoreCase))
             {
                 inMessagesSection = true;
             }
-            // 他のセクションの開始を検出（Messages セクションを終了）
             else if (trimmed.StartsWith("[") && trimmed.EndsWith("]"))
             {
                 inMessagesSection = false;
             }
+
             // Messages セクション内のキー=値ペアを解析
             else if (inMessagesSection && trimmed.Contains("="))
             {
@@ -221,11 +220,13 @@ static class Program
     /// </summary>
     /// <param name="key">メッセージのキー</param>
     /// <returns>メッセージ文字列。キーが存在しない場合はエラーメッセージ</returns>
-    static string GetMessage(string key)
+    static string GetMessage(string key, string fallback = "")
     {
-        // 辞書にキーが存在する場合は対応するメッセージを返す
-        // 存在しない場合はエラーメッセージを返す
-        return messages.ContainsKey(key) ? messages[key] : $"Message not found: {key}";
+        if (messages.TryGetValue(key, out var message))
+        {
+            return message;
+        }
+        return !string.IsNullOrEmpty(fallback) ? fallback : $"Message not found: {key}";
     }
 }
 
