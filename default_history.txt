@@ -20,6 +20,9 @@ sudo dnf upgrade
 sudo dnf autoremove
 sudo dnf update
 hermes update
+hf update
+llama update
+npm -g outdated --parseable --depth=0 | cut -d: -f2 | xargs -I {} npm install -g {}
 hc
-hc; sudo dnf update -y; sudo dnf autoremove -y; sudo dnf upgrade -y; flatpak update -y; flatpak upgrade -y; flatpak uninstall --unused; rustup upgrade; rustup update; rustup self update; yes | sdk upgrade; sdk current; sdk flush candidates; ollama list; ollama ps; sudo systemctl stop lemonade-server; sudo systemctl stop ollama; llama update; llm-agent-man.sh; update-desktop-database ~/.local/share/applications/; hc
+hc; sudo dnf update -y; sudo dnf autoremove -y; sudo dnf upgrade -y; flatpak update -y; flatpak upgrade -y; flatpak uninstall --unused; rustup upgrade; rustup update; rustup self update; yes | sdk upgrade; sdk current; sdk flush candidates; ollama list; ollama ps; sudo systemctl stop lemonade-server; sudo systemctl stop ollama; llama update; update-desktop-database ~/.local/share/applications/; npm -g outdated --parseable --depth=0 | cut -d: -f2 | xargs -I {} npm install -g {}; npm outdated -g; ncu --version; corepack --version; llm-agent-man.sh; hc
 ###
