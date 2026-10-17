@@ -9,14 +9,29 @@
     <!-- 単一ファイル化の設定 -->
     <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
     <PublishSingleFile>true</PublishSingleFile>
-    <SelfContained>false</SelfContained>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="messages.ini" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="default_history.txt" CopyToOutputDirectory="PreserveNewest" />
-    <EmbeddedResource Include="messages.ini" />
-    <EmbeddedResource Include="default_history.txt" />
+    <None Update="messages.ini" CopyToPublishDirectory="PreserveNewest" />
+    <None Update="default_history.txt" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
+
+  <Target Name="InstallPublishedFiles" AfterTargets="Publish">
+    <PropertyGroup>
+      <UserLocalBin>$(HOME)/.local/bin</UserLocalBin>
+      <UserConfigDir>$(HOME)/.config/hisclear</UserConfigDir>
+    </PropertyGroup>
+
+    <MakeDir Directories="$(UserLocalBin);$(UserConfigDir)" />
+
+    <Copy
+      SourceFiles="$(PublishDir)$(AssemblyName)"
+      DestinationFiles="$(UserLocalBin)/hisclear"
+      SkipUnchangedFiles="true" />
+    <Copy
+      SourceFiles="$(PublishDir)messages.ini;$(PublishDir)default_history.txt"
+      DestinationFolder="$(UserConfigDir)"
+      SkipUnchangedFiles="true" />
+  </Target>
 
 </Project>

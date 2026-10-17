@@ -9,7 +9,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
 using System.Runtime.InteropServices;
 
 static class Program
@@ -38,21 +37,6 @@ static class Program
     /// </summary>
     static void Main()
     {
-        try
-        {
-            EnsureUserConfigFiles();
-        }
-        catch (IOException ex)
-        {
-            Console.Error.WriteLine($"設定ファイルの作成に失敗しました: {ex.Message}");
-            return;
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            Console.Error.WriteLine($"設定ファイルの作成に失敗しました: {ex.Message}");
-            return;
-        }
-
         // メッセージリソースファイルを読み込み
         LoadMessages();
 
@@ -230,73 +214,24 @@ static class Program
         }
     }
 
-    /// <summary>
-    /// 実行ディレクトリに設定ファイルがない場合、~/.local/bin に補完します
-    /// </summary>
-    static void EnsureUserConfigFiles()
-    {
-        string[] configFiles = [DefaultHistoryFile, MessagesFile];
-        string appDirectory = AppContext.BaseDirectory;
-
-        if (Array.TrueForAll(configFiles, file => File.Exists(Path.Combine(appDirectory, file))))
-        {
-            return;
-        }
-
-        string userBinDirectory = GetUserBinDirectory();
-        Directory.CreateDirectory(userBinDirectory);
-
-        foreach (string file in configFiles)
-        {
-            string destinationPath = Path.Combine(userBinDirectory, file);
-            if (File.Exists(destinationPath))
-            {
-                continue;
-            }
-
-            string sourcePath = Path.Combine(appDirectory, file);
-            if (File.Exists(sourcePath))
-            {
-                File.Copy(sourcePath, destinationPath);
-                continue;
-            }
-
-            string? resourceName = null;
-            foreach (string name in Assembly.GetExecutingAssembly().GetManifestResourceNames())
-            {
-                if (name.EndsWith("." + file, StringComparison.OrdinalIgnoreCase))
-                {
-                    resourceName = name;
-                    break;
-                }
-            }
-
-            if (resourceName is null)
-            {
-                throw new FileNotFoundException($"埋め込みリソースが見つかりません: {file}");
-            }
-
-            using Stream resource = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName)
-                ?? throw new FileNotFoundException($"埋め込みリソースを読み込めません: {file}");
-            using FileStream destination = File.Create(destinationPath);
-            resource.CopyTo(destination);
-        }
-    }
-
     static string GetConfigFilePath(string fileName)
     {
+        string userConfigPath = Path.Combine(GetUserConfigDirectory(), fileName);
+        if (File.Exists(userConfigPath))
+        {
+            return userConfigPath;
+        }
+
         string appPath = Path.Combine(AppContext.BaseDirectory, fileName);
-        return File.Exists(appPath)
-            ? appPath
-            : Path.Combine(GetUserBinDirectory(), fileName);
+        return File.Exists(appPath) ? appPath : userConfigPath;
     }
 
-    static string GetUserBinDirectory()
+    static string GetUserConfigDirectory()
     {
         return Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            ".local",
-            "bin");
+            ".config",
+            "hisclear");
     }
 
     /// <summary>

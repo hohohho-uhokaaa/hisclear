@@ -49,24 +49,26 @@ dotnet add package <PackageName>
 git clone <repository-url>
 cd hisclear
 
-# プロジェクトをビルド
+# ビルド（実行ファイルの配置は行いません）
 dotnet build
 
-# 実行ファイルのコピーを確保
-dotnet publish -c Release
+# publish して ~/.local/bin と ~/.config/hisclear に配置
+dotnet publish -c Release --self-contained false
 
-# Self-contained バージョンを作成（.NET ランタイム不要）
-dotnet publish -c Release --self-contained true -r linux-x64
+# .NET ランタイムを含む Self-contained 版を配置する場合
+dotnet publish -c Release --self-contained true
 ```
+
+publish 成果物は `linux-x64` 向けの単一ファイルです。publish が完了すると、実行ファイル `hisclear` は `~/.local/bin` に、`messages.ini` と `default_history.txt` は `~/.config/hisclear` に自動配置されます。配置先ディレクトリがない場合は自動作成されます。`--self-contained false` は実行環境に .NET ランタイムが必要で、`--self-contained true` はランタイムを含みます。
 
 ## 使用方法
 
 ```bash
-# プログラムを実行
+# 開発中に実行
 dotnet run
 
-# またはビルド済みの実行ファイルを使用
-./bin/Release/net10.0/hisclear
+# publish 済みの実行ファイルを実行
+~/.local/bin/hisclear
 ```
 
 ### エイリアスの設定
@@ -77,7 +79,7 @@ dotnet run
 
 ```bash
 # ~/.bashrc に以下を追加
-alias hc='<path to>/hisclear'
+alias hc="$HOME/.local/bin/hisclear"
 
 # 設定を反映
 source ~/.bashrc
@@ -90,23 +92,13 @@ $ hc
 
 ```csh
 # ~/.cshrc に以下を追加
-alias hc '<path to>/hisclear'
+alias hc "$HOME/.local/bin/hisclear"
 
 # 設定を反映
 source ~/.cshrc
 
 # 使用方法
 % hc
-```
-
-#### Self-contained バージョンを使用する場合
-
-```bash
-# bash (~/.bashrc)
-alias hc='<path to>/hisclear'
-
-# csh/tcsh (~/.cshrc)
-alias hc '<path to>/hisclear'
 ```
 
 ## 設定ファイル
@@ -146,43 +138,18 @@ DefaultHistoryLoadFailed=デフォルト履歴ファイルの読み込みに失�
 
 #### 配置場所の注意事項
 
-`default_history.txt` と `messages.ini` は、実行ファイルと同じディレクトリに配置するとその内容が使用されます。どちらかが見つからない場合は、不足しているファイルを含む両ファイルを `~/.local/bin` に作成します。実行ファイルと同じディレクトリにない設定ファイルは `~/.local/bin` から読み込みます。生成先に既存ファイルがある場合は上書きしません。
+`dotnet publish` により、以下の構成で自動配置されます。通常の `dotnet build` ではユーザーディレクトリへの配置は行われません。
 
-```bash
-# 開発環境の場合
-hisclear/
-├── Program.cs
-├── hisclear.csproj
+```text
+~/.local/bin/
+└── hisclear
+
+~/.config/hisclear/
 ├── messages.ini
-├── default_history.txt
-└── bin/
-    └── Release/
-        └── net10.0/
-            ├── hisclear          # 実行ファイル
-            ├── messages.ini      # ここにもコピーされる
-            └── default_history.txt  # 任意（ない場合は ~/.local/bin に作成）
-
-# 配置方法
-cp default_history.txt bin/Release/net10.0/
-cp messages.ini bin/Release/net10.0/
+└── default_history.txt
 ```
 
-Self-contained バージョンを使用する場合：
-
-```bash
-# Self-contained バージョンの配置
-cp default_history.txt bin/Release/net10.0/linux-x64/publish/
-cp messages.ini bin/Release/net10.0/linux-x64/publish/
-```
-
-プロジェクトファイル（hisclear.csproj）に以下の設定を追加すると、ビルド時に自動的にコピーされます：
-
-```xml
-<ItemGroup>
-  <None Include="messages.ini" CopyToOutputDirectory="PreserveNewest" />
-  <None Include="default_history.txt" CopyToOutputDirectory="PreserveNewest" />
-</ItemGroup>
-```
+設定ファイルは `~/.config/hisclear` から読み込まれます。ファイルをカスタマイズした場合、次回以降の publish で変更内容がコピーされることがあります。既存設定を保持したい場合は、publish 後に必要に応じてバックアップから戻してください。
 
 ## ファイル構成
 
