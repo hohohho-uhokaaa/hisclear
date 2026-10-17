@@ -146,7 +146,7 @@ DefaultHistoryLoadFailed=デフォルト履歴ファイルの読み込みに失�
 
 #### 配置場所の注意事項
 
-**重要**: `default_history.txt` `messages.ini`はビルドした `hisclear` 実行ファイルと**同じディレクトリ**に配置する必要があります。
+`default_history.txt` と `messages.ini` は、実行ファイルと同じディレクトリに配置するとその内容が使用されます。どちらかが見つからない場合は、不足しているファイルを含む両ファイルを `~/.local/bin` に作成します。実行ファイルと同じディレクトリにない設定ファイルは `~/.local/bin` から読み込みます。生成先に既存ファイルがある場合は上書きしません。
 
 ```bash
 # 開発環境の場合
@@ -160,7 +160,7 @@ hisclear/
         └── net10.0/
             ├── hisclear          # 実行ファイル
             ├── messages.ini      # ここにもコピーされる
-            └── default_history.txt  # ここにもコピーされる必要あり
+            └── default_history.txt  # 任意（ない場合は ~/.local/bin に作成）
 
 # 配置方法
 cp default_history.txt bin/Release/net10.0/
@@ -208,6 +208,8 @@ MIT License
 ## 補足
 
 このプロジェクトは **Windsurf の Devin Next** を使用して開発されました。GitHub と組み合わせることで、効率的にコードの品質を向上させることができました。
+
+また、設定ファイルが見つからない場合に `~/.local/bin` へ作成する今回の仕様変更は、**VSCode + Copilot + gpt-6-luna の無料枠トライアル**を利用して行いました。
 
 ### Devin Next について
 

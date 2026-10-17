@@ -9,6 +9,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 static class Program
@@ -29,6 +30,7 @@ static class Program
     /// .bash_history が存在しない場合にこのファイルからコマンドを読み込みます
     /// </summary>
     private const string DefaultHistoryFile = "default_history.txt";
+    private const string MessagesFile = "messages.ini";
 
     /// <summary>
     /// プログラムのエントリーポイント
@@ -36,6 +38,21 @@ static class Program
     /// </summary>
     static void Main()
     {
+        try
+        {
+            EnsureUserConfigFiles();
+        }
+        catch (IOException ex)
+        {
+            Console.Error.WriteLine($"設定ファイルの作成に失敗しました: {ex.Message}");
+            return;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Console.Error.WriteLine($"設定ファイルの作成に失敗しました: {ex.Message}");
+            return;
+        }
+
         // メッセージリソースファイルを読み込み
         LoadMessages();
 
@@ -64,7 +81,7 @@ static class Program
         {
             if (File.Exists(filePath))
             {
-                // 既存の履歴ファイルを読み込み
+                // 既存の履歴ファイル ~/.bash_history を読み込み
                 string[] lines = File.ReadAllLines(filePath);
 
                 // デリミタ行（"###"）のインデックスを検索
@@ -149,8 +166,7 @@ static class Program
     /// <returns>デフォルト履歴のコマンド配列。ファイルが存在しない場合は空の配列</returns>
     static string[] LoadDefaultHistory()
     {
-        // アプリケーションベースディレクトリの default_history.txt パスを取得
-        string historyPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, DefaultHistoryFile);
+        string historyPath = GetConfigFilePath(DefaultHistoryFile);
 
         if (!File.Exists(historyPath))
         {
@@ -168,8 +184,7 @@ static class Program
     /// </summary>
     static void LoadMessages()
     {
-        // アプリケーションベースディレクトリの messages.ini パスを取得
-        string iniPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "messages.ini");
+        string iniPath = GetConfigFilePath(MessagesFile);
 
         if (!File.Exists(iniPath))
         {
@@ -216,6 +231,75 @@ static class Program
     }
 
     /// <summary>
+    /// 実行ディレクトリに設定ファイルがない場合、~/.local/bin に補完します
+    /// </summary>
+    static void EnsureUserConfigFiles()
+    {
+        string[] configFiles = [DefaultHistoryFile, MessagesFile];
+        string appDirectory = AppContext.BaseDirectory;
+
+        if (Array.TrueForAll(configFiles, file => File.Exists(Path.Combine(appDirectory, file))))
+        {
+            return;
+        }
+
+        string userBinDirectory = GetUserBinDirectory();
+        Directory.CreateDirectory(userBinDirectory);
+
+        foreach (string file in configFiles)
+        {
+            string destinationPath = Path.Combine(userBinDirectory, file);
+            if (File.Exists(destinationPath))
+            {
+                continue;
+            }
+
+            string sourcePath = Path.Combine(appDirectory, file);
+            if (File.Exists(sourcePath))
+            {
+                File.Copy(sourcePath, destinationPath);
+                continue;
+            }
+
+            string? resourceName = null;
+            foreach (string name in Assembly.GetExecutingAssembly().GetManifestResourceNames())
+            {
+                if (name.EndsWith("." + file, StringComparison.OrdinalIgnoreCase))
+                {
+                    resourceName = name;
+                    break;
+                }
+            }
+
+            if (resourceName is null)
+            {
+                throw new FileNotFoundException($"埋め込みリソースが見つかりません: {file}");
+            }
+
+            using Stream resource = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName)
+                ?? throw new FileNotFoundException($"埋め込みリソースを読み込めません: {file}");
+            using FileStream destination = File.Create(destinationPath);
+            resource.CopyTo(destination);
+        }
+    }
+
+    static string GetConfigFilePath(string fileName)
+    {
+        string appPath = Path.Combine(AppContext.BaseDirectory, fileName);
+        return File.Exists(appPath)
+            ? appPath
+            : Path.Combine(GetUserBinDirectory(), fileName);
+    }
+
+    static string GetUserBinDirectory()
+    {
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ".local",
+            "bin");
+    }
+
+    /// <summary>
     /// 指定されたキーに対応するメッセージを取得します
     /// </summary>
     /// <param name="key">メッセージのキー</param>
@@ -229,4 +313,3 @@ static class Program
         return !string.IsNullOrEmpty(fallback) ? fallback : $"Message not found: {key}";
     }
 }
-
